@@ -58,6 +58,7 @@ int main(int argc, char *argv[]) {
     int             frameFinished;
     int             numBytes;
     uint8_t         *buffer;
+    static struct SwsContext *img_convert_ctx;
     
     if(argc < 2) {
         printf("Please provide a movie file\n");
@@ -132,14 +133,15 @@ int main(int argc, char *argv[]) {
     avpicture_fill((AVPicture *)pFrameRGB, buffer, PIX_FMT_RGB24,
                    pCodecCtx->width, pCodecCtx->height);
 
-    /**
-     AVFrame like a header of image (BitmapHeader for example), it need 
-     actual associated memory buffer to store the image (frame) data.
-     */
 
+    int w = pCodecCtx->width;
+    int h = pCodecCtx->height;
+    img_convert_ctx = sws_getContext(w, h, pCodecCtx->pix_fmt,
+                                     w, h, PIX_FMT_RGB24,
+                                     SWS_BICUBIC, NULL, NULL, NULL);
     // Read frames and save first five frames to disk
     i=0;
-    while(av_read_frame(pFormatCtx, &packet)>=0) {
+    while((av_read_frame(pFormatCtx, &packet)>=0) && (i<5)) {
         // Is this a packet from the video stream?
         if(packet.stream_index==videoStreamIdx) {
             
@@ -149,35 +151,17 @@ int main(int argc, char *argv[]) {
             
             // Did we get a video frame?
             if(frameFinished) {
-                // Convert the image from its native format to RGB
-                /* Deprecated
-                img_convert((AVPicture *)pFrameRGB, PIX_FMT_RGB24,
-                            (AVPicture*)pFrame, pCodecCtx->pix_fmt, pCodecCtx->width,
-                            pCodecCtx->height);
-                */
-                
-                static struct SwsContext *img_convert_ctx;
-                int w = pCodecCtx->width;
-                int h = pCodecCtx->height;
-                img_convert_ctx = sws_getContext(w, h, pCodecCtx->pix_fmt,
-                                                 w, h, PIX_FMT_RGB24,
-                                                 SWS_BICUBIC, NULL, NULL, NULL);
-                
+                i++;
                 sws_scale(img_convert_ctx, (const uint8_t * const *)pFrame->data,
                           pFrame->linesize, 0, pCodecCtx->height,
                           pFrameRGB->data, pFrameRGB->linesize);
-                
-                // Save the frame to disk
-                if(++i<=5)
-                    SaveFrame(pFrameRGB, pCodecCtx->width, pCodecCtx->height,
-                              i);
+                SaveFrame(pFrameRGB, pCodecCtx->width, pCodecCtx->height, i);
             }
         }
-        
+
         // Free the packet that was allocated by av_read_frame
         av_free_packet(&packet);
     }
-    
     
 
     // Free the RGB image

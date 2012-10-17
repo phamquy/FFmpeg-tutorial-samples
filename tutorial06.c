@@ -612,7 +612,8 @@ int queue_picture(VideoState *vidState, AVFrame *pFrame, double pts) {
         static struct SwsContext *img_convert_ctx;
         int w = vidState->video_st->codec->width;
         int h = vidState->video_st->codec->height;
-        img_convert_ctx = sws_getContext(w, h, vidState->video_st->codec->pix_fmt,
+        if(!img_convert_ctx)
+            img_convert_ctx = sws_getContext(w, h, vidState->video_st->codec->pix_fmt,
                                          w, h, dst_pix_fmt,
                                          SWS_X, NULL, NULL, NULL);
         

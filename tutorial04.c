@@ -399,7 +399,7 @@ void alloc_picture(void *userdata) {
 ///-------------------------------------------------------------------------------------
 
 int queue_picture(VideoState *vidState, AVFrame *pFrame) {
-    
+    static struct SwsContext *img_convert_ctx;
     VideoPicture *vp;
     int dst_pix_fmt;
     AVPicture pict;
@@ -464,12 +464,13 @@ int queue_picture(VideoState *vidState, AVFrame *pFrame) {
 //                    (AVPicture *)pFrame, is->video_st->codec->pix_fmt,
 //                    is->video_st->codec->width, is->video_st->codec->height);
 
-        static struct SwsContext *img_convert_ctx;
         int w = vidState->video_st->codec->width;
         int h = vidState->video_st->codec->height;
-        img_convert_ctx = sws_getContext(w, h, vidState->video_st->codec->pix_fmt,
-                                         w, h, dst_pix_fmt,
-                                         SWS_BICUBIC, NULL, NULL, NULL);
+        if (!img_convert_ctx) {
+            img_convert_ctx = sws_getContext(w, h, vidState->video_st->codec->pix_fmt,
+                                             w, h, dst_pix_fmt,
+                                             SWS_BICUBIC, NULL, NULL, NULL);
+        }
         
         sws_scale(img_convert_ctx, (const uint8_t * const *)pFrame->data,
                   pFrame->linesize, 0, h,

@@ -37,8 +37,7 @@ int main(int argc, char *argv[]) {
     AVFrame         *pFrame;
     AVPacket        packet;
     int             frameFinished;
-    //float           aspect_ratio;
-    
+    static struct SwsContext *img_convert_ctx;
     
     /// SDL variables
     SDL_Overlay     *bmp;
@@ -115,7 +114,12 @@ int main(int argc, char *argv[]) {
                                SDL_YV12_OVERLAY,
                                screen);
     
-    
+
+    int w = pCodecCtx->width;
+    int h = pCodecCtx->height;
+    img_convert_ctx = sws_getContext(w, h, pCodecCtx->pix_fmt,
+                                     w, h, PIX_FMT_YUV420P,
+                                     SWS_BICUBIC, NULL, NULL, NULL);
     i=0;
     while(av_read_frame(pFormatCtx, &packet)>=0) {
         // Is this a packet from the video stream?
@@ -138,18 +142,6 @@ int main(int argc, char *argv[]) {
                 pict.linesize[2] = bmp->pitches[1];
                 
                 // Convert the image into YUV format that SDL uses
-                /* Deprecated
-                img_convert(&pict, PIX_FMT_YUV420P,
-                            (AVPicture *)pFrame, pCodecCtx->pix_fmt,
-                            pCodecCtx->width, pCodecCtx->height);
-                */
-                static struct SwsContext *img_convert_ctx;
-                int w = pCodecCtx->width;
-                int h = pCodecCtx->height;
-                img_convert_ctx = sws_getContext(w, h, pCodecCtx->pix_fmt,
-                                                 w, h, PIX_FMT_YUV420P,
-                                                 SWS_BICUBIC, NULL, NULL, NULL);
-                
                 sws_scale(img_convert_ctx, (const uint8_t * const *)pFrame->data,
                           pFrame->linesize, 0, pCodecCtx->height,
                           pict.data, pict.linesize);
